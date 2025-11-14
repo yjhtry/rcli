@@ -1,0 +1,11 @@
+Name,Kind,Birthday,Trending
+Python,High-level,1991,Very High
+JavaScript,High-level,1995,Very High
+Java,High-level,1995,High
+C#,High-level,2000,High
+C++,Mid-level,1985,Medium
+Go,Compiled,2009,High
+Rust,Compiled,2010,High
+TypeScript,High-level,2012,Very High
+Swift,High-level,2014,Medium
+Kotlin,High-level,2011,High
