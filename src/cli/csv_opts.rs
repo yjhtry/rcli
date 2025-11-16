@@ -5,6 +5,23 @@ use std::{fmt::Display, path::Path, str::FromStr};
 pub enum OutputFormat {
     JSON,
     YAML,
+    TOML,
+}
+
+#[derive(Parser, Debug)]
+pub struct CsvOpts {
+    #[arg(short, long, value_parser = verify_input_file)]
+    pub input: String,
+
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// "Support json, yaml, toml"
+    #[arg(short, long, default_value = "json")]
+    pub format: OutputFormat,
+
+    #[arg(short, long, default_value_t = ',')]
+    pub delimiter: char,
 }
 
 impl Display for OutputFormat {
@@ -12,6 +29,7 @@ impl Display for OutputFormat {
         match self {
             OutputFormat::JSON => f.write_str("json"),
             OutputFormat::YAML => f.write_str("yaml"),
+            OutputFormat::TOML => f.write_str("toml"),
         }
     }
 }
@@ -23,6 +41,7 @@ impl FromStr for OutputFormat {
         match s {
             "json" => Ok(OutputFormat::JSON),
             "yaml" => Ok(OutputFormat::YAML),
+            "toml" => Ok(OutputFormat::TOML),
             _ => Err(anyhow::anyhow!("Invalid format")),
         }
     }
@@ -33,35 +52,9 @@ impl From<OutputFormat> for &'static str {
         match value {
             OutputFormat::JSON => "json",
             OutputFormat::YAML => "yaml",
+            OutputFormat::TOML => "toml",
         }
     }
-}
-
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-pub struct Cli {
-    #[command(subcommand)]
-    pub command: Commands,
-}
-
-#[derive(Parser, Debug)]
-pub enum Commands {
-    Csv(CsvOpts),
-}
-
-#[derive(Parser, Debug)]
-pub struct CsvOpts {
-    #[arg(short, long, value_parser = verify_input_file)]
-    pub input: String,
-
-    #[arg(short, long)]
-    pub output: Option<String>,
-
-    #[arg(short, long, default_value = "json")]
-    pub format: OutputFormat,
-
-    #[arg(short, long, default_value_t = ',')]
-    pub delimiter: char,
 }
 
 fn verify_input_file(filename: &str) -> Result<String, &'static str> {
