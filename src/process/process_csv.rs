@@ -47,6 +47,7 @@ pub fn process_csv(
             serde_json::to_string_pretty(&json_list).context("Serialize failed")?
         }
         OutputFormat::YAML => serde_yaml::to_string(&json_list).context("Serialize failed")?,
+        // Toml do't support top level array, so wrap list with `data`
         OutputFormat::TOML => {
             toml::to_string(&json!({"data": &json_list})).context("Serialize failed")?
         }

@@ -1,5 +1,7 @@
 use clap::Parser;
-use std::{fmt::Display, path::Path, str::FromStr};
+use std::{fmt::Display, str::FromStr};
+
+use crate::cli::verify_input_file;
 
 #[derive(Debug, Clone, Copy)]
 pub enum OutputFormat {
@@ -54,13 +56,5 @@ impl From<OutputFormat> for &'static str {
             OutputFormat::YAML => "yaml",
             OutputFormat::TOML => "toml",
         }
-    }
-}
-
-fn verify_input_file(filename: &str) -> Result<String, &'static str> {
-    if Path::new(filename).exists() {
-        Ok(filename.into())
-    } else {
-        Err("Input file not exist!")
     }
 }
