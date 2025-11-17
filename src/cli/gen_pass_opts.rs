@@ -5,15 +5,23 @@ pub struct GenPassOpts {
     #[arg(short, long, default_value_t = 16)]
     pub length: u8,
 
-    #[arg(short, long, default_value_t = true)]
+    /// Include numbers
+    #[arg(short, long = "number")]
+    #[arg(long = "no-number", overrides_with = "number", action = clap::ArgAction::SetFalse)]
     pub number: bool,
 
-    #[arg(long, default_value_t = true)]
+    /// Include lowercase letters
+    #[arg(long = "lower")]
+    #[arg(long = "no-lower", overrides_with = "lower", action = clap::ArgAction::SetFalse)]
     pub lower: bool,
 
-    #[arg(short, long, default_value_t = true)]
+    /// Include uppercase letters
+    #[arg(short, long = "upper")]
+    #[arg(long = "no-upper", overrides_with = "upper", action = clap::ArgAction::SetFalse)]
     pub upper: bool,
 
-    #[arg(short, long, default_value_t = true)]
+    /// Include symbols
+    #[arg(short, long = "symbol")]
+    #[arg(long = "no-symbol", overrides_with = "symbol", action = clap::ArgAction::SetFalse)]
     pub symbol: bool,
 }

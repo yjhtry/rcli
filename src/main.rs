@@ -20,7 +20,7 @@ fn main() -> anyhow::Result<()> {
                 opts.lower,
                 opts.upper,
                 opts.symbol,
-            );
+            )?;
 
             println!("{}", password);
         }
