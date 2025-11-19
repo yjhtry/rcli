@@ -8,7 +8,7 @@ pub use cli::{
 pub use process::process_csv;
 pub use process::process_gen_pass;
 pub use process::{
-    check_password_strength, process_base64_decode, process_base64_encode, process_generate,
-    process_text_sign, process_text_verify,
+    check_password_strength, process_base64_decode, process_base64_encode, process_key_generate,
+    process_text_decrypt, process_text_encrypt, process_text_sign, process_text_verify,
 };
 pub use utils::read_buffer_from_input;

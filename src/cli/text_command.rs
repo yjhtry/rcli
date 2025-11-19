@@ -13,8 +13,14 @@ pub enum TextCommand {
     #[command(about = "Verify text with sign")]
     Verify(VerifyTextOpts),
 
-    #[command(about = "Generate sign key")]
+    #[command(about = "Generate sign/verify key or encrypt/decrypt key")]
     Generate(GenerateOpts),
+
+    #[command(about = "Encrypt text")]
+    Encrypt(EncryptOpts),
+
+    #[command(about = "Decrypt encrypted text")]
+    Decrypt(DecryptOpts),
 }
 
 #[derive(Debug, Parser)]
@@ -25,7 +31,7 @@ pub struct SignTextOpts {
     #[arg(short, long, value_parser = verify_file)]
     pub key: String,
 
-    #[arg(long, value_parser = verify_format, default_value = "Blake3")]
+    #[arg(long, value_parser = verify_format, default_value = "blake3")]
     pub format: TextSignFormat,
 }
 
@@ -40,23 +46,47 @@ pub struct VerifyTextOpts {
     #[arg(short, long)]
     pub sign: String,
 
-    #[arg(long, value_parser = verify_format, default_value = "Blake3")]
+    #[arg(long, value_parser = verify_format, default_value = "blake3")]
     pub format: TextSignFormat,
 }
 
 #[derive(Debug, Parser)]
 pub struct GenerateOpts {
-    #[arg(long, value_parser = verify_format, default_value = "Blake3")]
+    // Generate sign/verify or encrypt/decrypt key
+    #[arg(long, value_parser = verify_format, default_value = "blake3")]
     pub format: TextSignFormat,
 
     #[arg(short, long, value_parser = verify_path, default_value = "fixtures")]
     pub output: PathBuf,
 }
 
+#[derive(Debug, Parser)]
+pub struct EncryptOpts {
+    #[arg(short, long, value_parser = verify_file, default_value = "-")]
+    pub input: String,
+
+    // Cipher content output file
+    #[arg(short, long)]
+    pub output: String,
+
+    #[arg(short, long, value_parser = verify_file)]
+    pub key: String,
+}
+
+#[derive(Debug, Parser)]
+pub struct DecryptOpts {
+    #[arg(short, long, value_parser = verify_file, default_value = "-")]
+    pub input: String,
+
+    #[arg(short, long, value_parser = verify_file)]
+    pub key: String,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum TextSignFormat {
     Blake3,
     ED25519,
+    ChaCha20Poly1305,
 }
 
 impl FromStr for TextSignFormat {
@@ -64,8 +94,9 @@ impl FromStr for TextSignFormat {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Blake3" => Ok(TextSignFormat::Blake3),
+            "blake3" => Ok(TextSignFormat::Blake3),
             "ed25519" => Ok(TextSignFormat::ED25519),
+            "chacha20poly1305" => Ok(TextSignFormat::ChaCha20Poly1305),
             _ => Err(anyhow::anyhow!("Invalid text sign format")),
         }
     }
@@ -74,8 +105,9 @@ impl FromStr for TextSignFormat {
 impl fmt::Display for TextSignFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TextSignFormat::Blake3 => write!(f, "Blake3"),
+            TextSignFormat::Blake3 => write!(f, "blake3"),
             TextSignFormat::ED25519 => write!(f, "ed25519"),
+            TextSignFormat::ChaCha20Poly1305 => write!(f, "chacha20poly1305"),
         }
     }
 }
@@ -83,8 +115,9 @@ impl fmt::Display for TextSignFormat {
 impl From<TextSignFormat> for &'static str {
     fn from(value: TextSignFormat) -> Self {
         match value {
-            TextSignFormat::Blake3 => "Blake3",
+            TextSignFormat::Blake3 => "blake3",
             TextSignFormat::ED25519 => "ed25519",
+            TextSignFormat::ChaCha20Poly1305 => "chacha20poly1305",
         }
     }
 }

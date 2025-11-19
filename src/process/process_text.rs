@@ -1,12 +1,16 @@
 use crate::{TextSignFormat, process_gen_pass, read_buffer_from_input};
 use anyhow::Result;
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
+use chacha20poly1305::{
+    ChaCha20Poly1305, Nonce,
+    aead::{Aead, AeadCore, KeyInit, OsRng},
+};
 use ed25519_dalek::{SECRET_KEY_LENGTH, Signature, Signer, SigningKey, Verifier, VerifyingKey};
-use rand::rngs::OsRng;
 use rand_core::TryRngCore;
 use std::str::FromStr;
 
 type SecretKey = [u8; SECRET_KEY_LENGTH];
+const CHACHA_NONCE_LEN: usize = 12;
 
 pub trait TextSign {
     fn sign(&self, data: &[u8]) -> Result<String>;
@@ -18,6 +22,7 @@ pub trait TextVerify {
 
 pub trait KeyLoad {
     fn new(key: SecretKey) -> Self;
+
     fn try_new(key: &[u8]) -> Result<Self>
     where
         Self: Sized,
@@ -31,6 +36,7 @@ pub trait KeyLoad {
         let key = key[..32].try_into()?;
         Ok(Self::new(key))
     }
+
     fn load(key: impl AsRef<str>) -> Result<Self>
     where
         Self: Sized,
@@ -115,6 +121,7 @@ pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> anyh
     match format {
         TextSignFormat::Blake3 => Blake3::load(key)?.sign(&buf),
         TextSignFormat::ED25519 => Ed25519Signer::load(key)?.sign(&buf),
+        _ => Err(anyhow::anyhow!("Invalid text sign format")),
     }
 }
 
@@ -127,7 +134,7 @@ impl KeyGenerator for Blake3 {
 
 impl KeyGenerator for Ed25519Signer {
     fn generate() -> Result<Vec<Vec<u8>>> {
-        let mut csprng = OsRng.unwrap_err();
+        let mut csprng = rand_core::OsRng.unwrap_err();
         let sk = SigningKey::generate(&mut csprng);
         let pk = sk.verifying_key();
         let sk = sk.to_bytes().to_vec();
@@ -146,14 +153,48 @@ pub fn process_text_verify(
     match format {
         TextSignFormat::Blake3 => Blake3::load(key)?.verify(&buf, sign),
         TextSignFormat::ED25519 => Ed25519Verifier::load(key)?.verify(&buf, sign),
+        _ => Err(anyhow::anyhow!("Invalid text verify format")),
     }
 }
 
-pub fn process_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
+pub fn process_key_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
     match format {
         TextSignFormat::Blake3 => Blake3::generate(),
         TextSignFormat::ED25519 => Ed25519Signer::generate(),
+        TextSignFormat::ChaCha20Poly1305 => {
+            let key = ChaCha20Poly1305::generate_key(&mut OsRng).to_vec();
+            Ok(vec![key])
+        }
     }
+}
+
+pub fn process_text_encrypt(input: &str, key: &str) -> Result<Vec<u8>> {
+    let data = read_buffer_from_input(input)?;
+    let key = read_buffer_from_input(key)?;
+    let cipher = ChaCha20Poly1305::new_from_slice(&key).unwrap();
+    let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+    let ciphertext = cipher.encrypt(&nonce, data.as_ref()).unwrap();
+    let mut result = nonce.to_vec();
+    result.extend_from_slice(&ciphertext);
+
+    Ok(result)
+}
+
+pub fn process_text_decrypt(input: &str, key: &str) -> Result<Vec<u8>> {
+    let data = read_buffer_from_input(input)?;
+    if data.len() < CHACHA_NONCE_LEN {
+        return Err(anyhow::anyhow!("Invalid ciphertext: too short"));
+    }
+    let key = read_buffer_from_input(key)?;
+    let (nonce_bytes, ciphertext) = data.split_at(12);
+    let nonce = Nonce::from_slice(nonce_bytes);
+    let cipher =
+        ChaCha20Poly1305::new_from_slice(&key).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    let ciphertext = cipher
+        .decrypt(nonce, ciphertext.as_ref())
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
+    Ok(ciphertext)
 }
 
 #[cfg(test)]
