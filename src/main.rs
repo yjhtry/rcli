@@ -1,6 +1,7 @@
 use clap::Parser;
 use rcli::{
-    Cli, Commands, process_base64_decode, process_base64_encode, process_csv, process_gen_pass,
+    Cli, Commands, TextCommand, process_base64_decode, process_base64_encode, process_csv,
+    process_gen_pass, process_text_sign, process_text_verify,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -23,14 +24,24 @@ fn main() -> anyhow::Result<()> {
                 opts.upper,
                 opts.symbol,
             )?;
-            println!("{}", password);
+            print!("{}", password);
         }
         Commands::Base64(base64_command) => match base64_command {
-            rcli::Base64Command::Decode(decode_opts) => {
-                process_base64_decode(&decode_opts.input, decode_opts.format)?;
+            rcli::Base64Command::Decode(opts) => {
+                process_base64_decode(&opts.input, opts.format)?;
             }
-            rcli::Base64Command::Encode(encode_opts) => {
-                process_base64_encode(&encode_opts.input, encode_opts.format)?;
+            rcli::Base64Command::Encode(opts) => {
+                process_base64_encode(&opts.input, opts.format)?;
+            }
+        },
+        Commands::Text(text_command) => match text_command {
+            TextCommand::Sign(opts) => {
+                let sign = process_text_sign(&opts.input, &opts.key, opts.format)?;
+                print!("{}", sign);
+            }
+            TextCommand::Verify(opts) => {
+                let result = process_text_verify(&opts.input, &opts.key, opts.format, opts.sign)?;
+                println!("{}", result)
             }
         },
     }

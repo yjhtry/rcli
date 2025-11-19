@@ -14,8 +14,10 @@ keywords = []
 [dependencies]
 anyhow = "1.0.100"
 base64 = "0.22.1"
+blake3 = "1.8.2"
 clap = { version = "4.5.51", features = ["derive"] }
 csv = "1.4.0"
+ed25519-dalek = "2.2.0"
 rand = "0.9.2"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"

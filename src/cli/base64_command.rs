@@ -4,19 +4,19 @@ use std::str::FromStr;
 use anyhow::anyhow;
 use clap::Parser;
 
-use crate::cli::verify_input_file;
+use crate::cli::verify_file;
 
 #[derive(Parser, Debug)]
 pub enum Base64Command {
-    #[command(name = "decode", about = "Decode base64 to output")]
+    #[command(about = "Decode base64 to output")]
     Decode(DecodeOpts),
-    #[command(name = "encode", about = "Encode input to base64")]
+    #[command(about = "Encode input to base64")]
     Encode(EncodeOpts),
 }
 
 #[derive(Debug, Parser)]
 pub struct DecodeOpts {
-    #[arg(short, long, value_parser = verify_input_file, default_value = "-")]
+    #[arg(short, long, value_parser = verify_file, default_value = "-")]
     pub input: String,
 
     #[arg(long, value_parser = verify_base64_format, default_value = "standard")]
@@ -25,7 +25,7 @@ pub struct DecodeOpts {
 
 #[derive(Debug, Parser)]
 pub struct EncodeOpts {
-    #[arg(short, long, value_parser = verify_input_file, default_value = "-")]
+    #[arg(short, long, value_parser = verify_file, default_value = "-")]
     pub input: String,
 
     #[arg(long, value_parser = verify_base64_format, default_value = "standard")]
