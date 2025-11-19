@@ -1,5 +1,6 @@
 use crate::{TextSignFormat, read_buffer_from_input};
 use anyhow::Result;
+use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use ed25519_dalek::{SECRET_KEY_LENGTH, Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use std::str::FromStr;
 
@@ -73,8 +74,9 @@ impl KeyLoad for Ed25519Verifier {
 
 impl TextSign for Blake3 {
     fn sign(&self, data: &[u8]) -> Result<String> {
-        let sign = blake3::keyed_hash(&self.key, data).to_string();
-        Ok(sign)
+        let signature = blake3::keyed_hash(&self.key, data).to_string();
+        let signature = BASE64_URL_SAFE_NO_PAD.encode(signature);
+        Ok(signature)
     }
 }
 
@@ -88,13 +90,15 @@ impl TextVerify for Blake3 {
 impl TextSign for Ed25519Signer {
     fn sign(&self, data: &[u8]) -> Result<String> {
         let signature = self.key.sign(data).to_string();
+        let signature = BASE64_URL_SAFE_NO_PAD.encode(signature);
         Ok(signature)
     }
 }
 
 impl TextVerify for Ed25519Verifier {
     fn verify(&self, data: &[u8], sign: String) -> Result<bool> {
-        let signature = Signature::from_str(&sign)?;
+        let signature = BASE64_URL_SAFE_NO_PAD.decode(sign)?;
+        let signature = Signature::from_str(str::from_utf8(&signature)?)?;
         Ok(self.key.verify(data, &signature).is_ok())
     }
 }
