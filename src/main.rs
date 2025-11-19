@@ -1,8 +1,10 @@
 use clap::Parser;
 use rcli::{
-    Cli, Commands, TextCommand, process_base64_decode, process_base64_encode, process_csv,
-    process_gen_pass, process_text_sign, process_text_verify,
+    Cli, Commands, TextCommand, check_password_strength, process_base64_decode,
+    process_base64_encode, process_csv, process_gen_pass, process_generate, process_text_sign,
+    process_text_verify,
 };
+use std::fs::{self};
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -24,7 +26,8 @@ fn main() -> anyhow::Result<()> {
                 opts.upper,
                 opts.symbol,
             )?;
-            print!("{}", password);
+
+            check_password_strength(&password);
         }
         Commands::Base64(base64_command) => match base64_command {
             rcli::Base64Command::Decode(opts) => {
@@ -42,6 +45,23 @@ fn main() -> anyhow::Result<()> {
             TextCommand::Verify(opts) => {
                 let result = process_text_verify(&opts.input, &opts.key, opts.format, opts.sign)?;
                 println!("{}", result)
+            }
+            TextCommand::Generate(opts) => {
+                let result = process_generate(opts.format)?;
+                match opts.format {
+                    rcli::TextSignFormat::Blake3 => {
+                        assert_eq!(result.len(), 1, "Generate Blake3 key failed");
+                        let path = opts.output.join("blake3.txt");
+                        fs::write(&path, &result[0])?;
+                    }
+                    rcli::TextSignFormat::ED25519 => {
+                        assert_eq!(result.len(), 2, "Generate ED25519 key failed");
+                        let pk_path = opts.output.join("ed25519.pk");
+                        let sk_path = opts.output.join("ed25519.sk");
+                        fs::write(sk_path, &result[0])?;
+                        fs::write(pk_path, &result[1])?;
+                    }
+                };
             }
         },
     }

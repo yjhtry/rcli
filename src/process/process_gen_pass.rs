@@ -7,14 +7,14 @@ const UPPER: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const SYMBOL: &[u8] = b"!@#$%^&*";
 
 pub fn process_gen_pass(
-    length: u8,
+    length: usize,
     number: bool,
     lower: bool,
     upper: bool,
     symbol: bool,
 ) -> anyhow::Result<String> {
     let mut chars = Vec::with_capacity(96);
-    let mut result = Vec::with_capacity(length as usize);
+    let mut result = Vec::with_capacity(length);
     let mut rng = rand::rng();
 
     if number {
@@ -37,14 +37,13 @@ pub fn process_gen_pass(
         result.push(*chars.choose(&mut rng).expect("Chars won't be empty"));
     }
 
-    for _ in 0..((length as usize) - result.len()) {
+    for _ in 0..(length - result.len()) {
         let c = chars.choose(&mut rng).expect("Chars won't be empty");
         result.push(*c);
     }
 
     result.shuffle(&mut rng);
     let password = String::from_utf8(result)?;
-    check_password_strength(&password);
 
     Ok(password)
 }

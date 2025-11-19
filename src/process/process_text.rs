@@ -1,7 +1,9 @@
-use crate::{TextSignFormat, read_buffer_from_input};
+use crate::{TextSignFormat, process_gen_pass, read_buffer_from_input};
 use anyhow::Result;
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use ed25519_dalek::{SECRET_KEY_LENGTH, Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use rand::rngs::OsRng;
+use rand_core::TryRngCore;
 use std::str::FromStr;
 
 type SecretKey = [u8; SECRET_KEY_LENGTH];
@@ -12,18 +14,6 @@ pub trait TextSign {
 
 pub trait TextVerify {
     fn verify(&self, data: &[u8], sign: String) -> Result<bool>;
-}
-
-pub struct Blake3 {
-    key: SecretKey,
-}
-
-pub struct Ed25519Signer {
-    key: SigningKey,
-}
-
-pub struct Ed25519Verifier {
-    key: VerifyingKey,
 }
 
 pub trait KeyLoad {
@@ -50,6 +40,22 @@ pub trait KeyLoad {
     }
 }
 
+pub trait KeyGenerator {
+    fn generate() -> Result<Vec<Vec<u8>>>;
+}
+
+pub struct Blake3 {
+    key: SecretKey,
+}
+
+pub struct Ed25519Signer {
+    key: SigningKey,
+}
+
+pub struct Ed25519Verifier {
+    key: VerifyingKey,
+}
+
 impl KeyLoad for Blake3 {
     fn new(key: SecretKey) -> Self {
         Self { key }
@@ -65,41 +71,42 @@ impl KeyLoad for Ed25519Signer {
 
 impl KeyLoad for Ed25519Verifier {
     fn new(key: SecretKey) -> Self {
-        // VerifyKey generate from sign_key
-        let sign_key = SigningKey::from_bytes(&key);
-        let verify_key = sign_key.verifying_key();
-        Self { key: verify_key }
+        let verifying_key = VerifyingKey::from_bytes(&key).expect("Parse public key failed");
+        Self { key: verifying_key }
     }
 }
 
 impl TextSign for Blake3 {
     fn sign(&self, data: &[u8]) -> Result<String> {
-        let signature = blake3::keyed_hash(&self.key, data).to_string();
-        let signature = BASE64_URL_SAFE_NO_PAD.encode(signature);
-        Ok(signature)
+        let signed = blake3::keyed_hash(&self.key, data).to_string();
+        // Convert signature to url safe string for get searchParams
+        let signed = BASE64_URL_SAFE_NO_PAD.encode(signed);
+        Ok(signed)
     }
 }
 
 impl TextVerify for Blake3 {
-    fn verify(&self, data: &[u8], sign: String) -> Result<bool> {
-        let hash = self.sign(data)?;
-        Ok(sign == hash)
+    fn verify(&self, data: &[u8], signed: String) -> Result<bool> {
+        let cp_signed = self.sign(data)?;
+        Ok(cp_signed == signed)
     }
 }
 
 impl TextSign for Ed25519Signer {
     fn sign(&self, data: &[u8]) -> Result<String> {
-        let signature = self.key.sign(data).to_string();
-        let signature = BASE64_URL_SAFE_NO_PAD.encode(signature);
-        Ok(signature)
+        let signed = self.key.sign(data).to_string();
+        // Encode signature to url safe string for get searchParams
+        let signed = BASE64_URL_SAFE_NO_PAD.encode(signed);
+        Ok(signed)
     }
 }
 
 impl TextVerify for Ed25519Verifier {
     fn verify(&self, data: &[u8], sign: String) -> Result<bool> {
-        let signature = BASE64_URL_SAFE_NO_PAD.decode(sign)?;
-        let signature = Signature::from_str(str::from_utf8(&signature)?)?;
-        Ok(self.key.verify(data, &signature).is_ok())
+        // Decode signature from url safe string
+        let signed = BASE64_URL_SAFE_NO_PAD.decode(sign)?;
+        let signed = Signature::from_str(str::from_utf8(&signed)?)?;
+        Ok(self.key.verify(data, &signed).is_ok())
     }
 }
 
@@ -108,6 +115,24 @@ pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> anyh
     match format {
         TextSignFormat::Blake3 => Blake3::load(key)?.sign(&buf),
         TextSignFormat::ED25519 => Ed25519Signer::load(key)?.sign(&buf),
+    }
+}
+
+impl KeyGenerator for Blake3 {
+    fn generate() -> Result<Vec<Vec<u8>>> {
+        let key = process_gen_pass(SECRET_KEY_LENGTH, true, true, true, true)?;
+        Ok(vec![key.into()])
+    }
+}
+
+impl KeyGenerator for Ed25519Signer {
+    fn generate() -> Result<Vec<Vec<u8>>> {
+        let mut csprng = OsRng.unwrap_err();
+        let sk = SigningKey::generate(&mut csprng);
+        let pk = sk.verifying_key();
+        let sk = sk.to_bytes().to_vec();
+        let pk = pk.to_bytes().to_vec();
+        Ok(vec![sk, pk])
     }
 }
 
@@ -124,31 +149,35 @@ pub fn process_text_verify(
     }
 }
 
+pub fn process_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
+    match format {
+        TextSignFormat::Blake3 => Blake3::generate(),
+        TextSignFormat::ED25519 => Ed25519Signer::generate(),
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use crate::{
-        process::process_text::{
-            Blake3, Ed25519Signer, Ed25519Verifier, KeyLoad, TextSign, TextVerify,
-        },
-        process_gen_pass,
+    use crate::process::process_text::{
+        Blake3, Ed25519Signer, Ed25519Verifier, KeyGenerator, KeyLoad, TextSign, TextVerify,
     };
 
     #[test]
     fn test_blake3_sign_and_verify() {
-        let key = process_gen_pass(32, true, true, true, true).unwrap();
-        let blake3 = Blake3::try_new(key.as_bytes()).unwrap();
+        let key = Blake3::generate().unwrap();
+        let blake3 = Blake3::try_new(&key[0]).unwrap();
         let data = b"Hello, rust!";
-        let sign = blake3.sign(data).unwrap();
-        assert!(blake3.verify(data, sign).is_ok());
+        let signed = blake3.sign(data).unwrap();
+        assert!(blake3.verify(data, signed).is_ok());
     }
 
     #[test]
     fn test_ed25519_sign_and_verify() {
-        let key = process_gen_pass(32, true, true, true, true).unwrap();
-        let singer = Ed25519Signer::try_new(key.as_bytes()).unwrap();
+        let key = Ed25519Signer::generate().unwrap();
+        let singer = Ed25519Signer::try_new(&key[0]).unwrap();
         let data = b"Hello, rust!";
-        let sign = singer.sign(data).unwrap();
-        let verifier = Ed25519Verifier::try_new(key.as_bytes()).unwrap();
-        assert!(verifier.verify(data, sign).is_ok());
+        let signed = singer.sign(data).unwrap();
+        let verifier = Ed25519Verifier::try_new(&key[1]).unwrap();
+        assert!(verifier.verify(data, signed).is_ok());
     }
 }

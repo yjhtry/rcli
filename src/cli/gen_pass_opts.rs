@@ -3,7 +3,7 @@ use clap::Parser;
 #[derive(Debug, Parser)]
 pub struct GenPassOpts {
     #[arg(short, long, default_value_t = 16)]
-    pub length: u8,
+    pub length: usize,
 
     /// Include numbers
     #[arg(short, long = "number")]

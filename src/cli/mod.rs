@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 
@@ -37,6 +37,15 @@ pub enum Commands {
 pub fn verify_file(filename: &str) -> Result<String, &'static str> {
     if filename == "-" || Path::new(filename).exists() {
         Ok(filename.into())
+    } else {
+        Err("Input file not exist")
+    }
+}
+
+pub fn verify_path(path: &str) -> Result<PathBuf, &'static str> {
+    let path = Path::new(path);
+    if path.exists() && path.is_dir() {
+        Ok(path.into())
     } else {
         Err("Input file not exist")
     }

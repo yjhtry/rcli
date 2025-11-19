@@ -1,16 +1,20 @@
 use core::fmt;
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use clap::Parser;
 
-use crate::cli::verify_file;
+use crate::cli::{verify_file, verify_path};
 
 #[derive(Parser, Debug)]
 pub enum TextCommand {
     #[command(about = "Sign text with private/shared key")]
     Sign(SignTextOpts),
+
     #[command(about = "Verify text with sign")]
     Verify(VerifyTextOpts),
+
+    #[command(about = "Generate sign key")]
+    Generate(GenerateOpts),
 }
 
 #[derive(Debug, Parser)]
@@ -40,7 +44,16 @@ pub struct VerifyTextOpts {
     pub format: TextSignFormat,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Parser)]
+pub struct GenerateOpts {
+    #[arg(long, value_parser = verify_format, default_value = "Blake3")]
+    pub format: TextSignFormat,
+
+    #[arg(short, long, value_parser = verify_path, default_value = "fixtures")]
+    pub output: PathBuf,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum TextSignFormat {
     Blake3,
     ED25519,
