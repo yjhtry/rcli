@@ -1,10 +1,10 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use base64::engine::general_purpose::URL_SAFE;
 use base64::prelude::*;
 
 use crate::{Base64Format, read_buffer_from_input};
 
-pub fn process_base64_encode(input: &str, format: Base64Format) -> anyhow::Result<()> {
+pub fn process_base64_encode(input: &str, format: Base64Format) -> Result<()> {
     let buf = read_buffer_from_input(input)?;
     let result = match format {
         Base64Format::Standard => BASE64_STANDARD.encode(buf),
@@ -15,7 +15,7 @@ pub fn process_base64_encode(input: &str, format: Base64Format) -> anyhow::Resul
     Ok(())
 }
 
-pub fn process_base64_decode(input: &str, format: Base64Format) -> anyhow::Result<()> {
+pub fn process_base64_decode(input: &str, format: Base64Format) -> Result<Vec<u8>> {
     let buf = read_buffer_from_input(input)?;
     let result = match format {
         Base64Format::Standard => BASE64_STANDARD
@@ -24,9 +24,7 @@ pub fn process_base64_decode(input: &str, format: Base64Format) -> anyhow::Resul
         Base64Format::UrlSafe => URL_SAFE.decode(buf).context("Decode input base64 failed")?,
     };
 
-    // TODO: decode output maybe not string, but for this case assume it is string
-    print!("{}", String::from_utf8_lossy(&result));
-    Ok(())
+    Ok(result)
 }
 
 #[cfg(test)]

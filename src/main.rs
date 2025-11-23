@@ -1,13 +1,16 @@
 use clap::Parser;
 use rcli::{
-    Cli, Commands, TextCommand, TextSignFormat, check_password_strength, process_base64_decode,
-    process_base64_encode, process_csv, process_gen_pass, process_key_generate,
-    process_text_decrypt, process_text_encrypt, process_text_sign, process_text_verify,
+    Cli, Commands, HttpCommand, TextCommand, TextSignFormat, check_password_strength,
+    process_base64_decode, process_base64_encode, process_csv, process_gen_pass,
+    process_http_serve, process_key_generate, process_text_decrypt, process_text_encrypt,
+    process_text_sign, process_text_verify,
 };
 use std::fs::{self};
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    tracing_subscriber::fmt().init();
 
     match cli.command {
         Commands::Csv(opts) => {
@@ -31,7 +34,10 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Base64(base64_command) => match base64_command {
             rcli::Base64Command::Decode(opts) => {
-                process_base64_decode(&opts.input, opts.format)?;
+                let result = process_base64_decode(&opts.input, opts.format)?;
+
+                // TODO: decode output maybe not string, but for this case assume it is string
+                print!("{}", String::from_utf8_lossy(&result));
             }
             rcli::Base64Command::Encode(opts) => {
                 process_base64_encode(&opts.input, opts.format)?;
@@ -75,6 +81,13 @@ fn main() -> anyhow::Result<()> {
             TextCommand::Decrypt(opts) => {
                 let plaintext = process_text_decrypt(&opts.input, &opts.key)?;
                 print!("{}", String::from_utf8(plaintext)?);
+            }
+        },
+
+        Commands::Http(http_command) => match http_command {
+            HttpCommand::Serve(opts) => {
+                let port = opts.port;
+                process_http_serve(opts.path, port).await?;
             }
         },
     }

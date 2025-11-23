@@ -5,11 +5,13 @@ use clap::Parser;
 mod base64_command;
 mod csv_opts;
 mod gen_pass_opts;
+mod http_command;
 mod text_command;
 
 pub use base64_command::{Base64Command, Base64Format};
 pub use csv_opts::{CsvOpts, OutputFormat};
 pub use gen_pass_opts::GenPassOpts;
+pub use http_command::HttpCommand;
 pub use text_command::{TextCommand, TextSignFormat};
 
 #[derive(Parser, Debug)]
@@ -32,6 +34,9 @@ pub enum Commands {
 
     #[command(subcommand)]
     Text(TextCommand),
+
+    #[command(subcommand)]
+    Http(HttpCommand),
 }
 
 pub fn verify_file(filename: &str) -> Result<String, &'static str> {
