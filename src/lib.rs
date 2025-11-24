@@ -2,10 +2,8 @@ mod cli;
 mod process;
 mod utils;
 
-pub use cli::{
-    Base64Command, Base64Format, Cli, Commands, CsvOpts, HttpCommand, OutputFormat, TextCommand,
-    TextSignFormat,
-};
+pub use cli::*;
+use enum_dispatch::enum_dispatch;
 pub use process::process_csv;
 pub use process::process_gen_pass;
 pub use process::{
@@ -14,3 +12,9 @@ pub use process::{
     process_text_verify,
 };
 pub use utils::read_buffer_from_input;
+
+#[allow(async_fn_in_trait)]
+#[enum_dispatch]
+pub trait CmdExecutor {
+    async fn execute(self) -> anyhow::Result<()>;
+}

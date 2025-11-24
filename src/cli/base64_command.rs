@@ -3,10 +3,12 @@ use std::str::FromStr;
 
 use anyhow::anyhow;
 use clap::Parser;
+use enum_dispatch::enum_dispatch;
 
-use crate::cli::verify_file;
+use crate::{CmdExecutor, cli::verify_file, process_base64_decode, process_base64_encode};
 
 #[derive(Parser, Debug)]
+#[enum_dispatch(CmdExecutor)]
 pub enum Base64Command {
     #[command(about = "Decode base64 to output")]
     Decode(DecodeOpts),
@@ -23,6 +25,16 @@ pub struct DecodeOpts {
     pub format: Base64Format,
 }
 
+impl CmdExecutor for DecodeOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let result = process_base64_decode(&self.input, self.format)?;
+
+        // TODO: decode output maybe not string, but for this case assume it is string
+        print!("{}", String::from_utf8_lossy(&result));
+        Ok(())
+    }
+}
+
 #[derive(Debug, Parser)]
 pub struct EncodeOpts {
     #[arg(short, long, value_parser = verify_file, default_value = "-")]
@@ -30,6 +42,12 @@ pub struct EncodeOpts {
 
     #[arg(long, value_parser = verify_base64_format, default_value = "standard")]
     pub format: Base64Format,
+}
+
+impl CmdExecutor for EncodeOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        process_base64_encode(&self.input, self.format)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

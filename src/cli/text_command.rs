@@ -1,11 +1,18 @@
 use core::fmt;
-use std::{path::PathBuf, str::FromStr};
+use std::{fs, path::PathBuf, str::FromStr};
 
 use clap::Parser;
+use enum_dispatch::enum_dispatch;
 
-use crate::cli::{verify_file, verify_path};
+use crate::{
+    CmdExecutor,
+    cli::{verify_file, verify_path},
+    process_key_generate, process_text_decrypt, process_text_encrypt, process_text_sign,
+    process_text_verify,
+};
 
 #[derive(Parser, Debug)]
+#[enum_dispatch(CmdExecutor)]
 pub enum TextCommand {
     #[command(about = "Sign text with private/shared key")]
     Sign(SignTextOpts),
@@ -35,6 +42,15 @@ pub struct SignTextOpts {
     pub format: TextSignFormat,
 }
 
+impl CmdExecutor for SignTextOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let sign = process_text_sign(&self.input, &self.key, self.format)?;
+        print!("{}", sign);
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Parser)]
 pub struct VerifyTextOpts {
     #[arg(short, long, value_parser = verify_file, default_value = "-")]
@@ -50,6 +66,14 @@ pub struct VerifyTextOpts {
     pub format: TextSignFormat,
 }
 
+impl CmdExecutor for VerifyTextOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let result = process_text_verify(&self.input, &self.key, self.format, self.sign)?;
+        println!("{}", result);
+        Ok(())
+    }
+}
+
 #[derive(Debug, Parser)]
 pub struct GenerateOpts {
     // Generate sign/verify or encrypt/decrypt key
@@ -58,6 +82,33 @@ pub struct GenerateOpts {
 
     #[arg(short, long, value_parser = verify_path, default_value = "fixtures")]
     pub output: PathBuf,
+}
+
+impl CmdExecutor for GenerateOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let result = process_key_generate(self.format)?;
+        match self.format {
+            TextSignFormat::Blake3 => {
+                assert_eq!(result.len(), 1, "Generate Blake3 key failed");
+                let path = self.output.join("blake3.txt");
+                fs::write(&path, &result[0])?;
+            }
+            TextSignFormat::ED25519 => {
+                assert_eq!(result.len(), 2, "Generate ED25519 key failed");
+                let pk_path = self.output.join("ed25519.pk");
+                let sk_path = self.output.join("ed25519.sk");
+                fs::write(sk_path, &result[0])?;
+                fs::write(pk_path, &result[1])?;
+            }
+            TextSignFormat::ChaCha20Poly1305 => {
+                assert_eq!(result.len(), 1, "Generate ChaCha20Poly1305 key failed");
+                let path = self.output.join("chacha20poly1305.txt");
+                fs::write(&path, &result[0])?;
+            }
+        };
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Parser)]
@@ -73,6 +124,14 @@ pub struct EncryptOpts {
     pub key: String,
 }
 
+impl CmdExecutor for EncryptOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let ciphertext = process_text_encrypt(&self.input, &self.key)?;
+        fs::write(self.output, ciphertext)?;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Parser)]
 pub struct DecryptOpts {
     #[arg(short, long, value_parser = verify_file, default_value = "-")]
@@ -80,6 +139,14 @@ pub struct DecryptOpts {
 
     #[arg(short, long, value_parser = verify_file)]
     pub key: String,
+}
+
+impl CmdExecutor for DecryptOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let plaintext = process_text_decrypt(&self.input, &self.key)?;
+        print!("{}", String::from_utf8(plaintext)?);
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

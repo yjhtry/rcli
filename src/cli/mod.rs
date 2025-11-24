@@ -8,11 +8,12 @@ mod gen_pass_opts;
 mod http_command;
 mod text_command;
 
-pub use base64_command::{Base64Command, Base64Format};
-pub use csv_opts::{CsvOpts, OutputFormat};
-pub use gen_pass_opts::GenPassOpts;
-pub use http_command::HttpCommand;
-pub use text_command::{TextCommand, TextSignFormat};
+pub use base64_command::*;
+pub use csv_opts::*;
+use enum_dispatch::enum_dispatch;
+pub use gen_pass_opts::*;
+pub use http_command::*;
+pub use text_command::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -22,6 +23,7 @@ pub struct Cli {
 }
 
 #[derive(Parser, Debug)]
+#[enum_dispatch(CmdExecutor)]
 pub enum Commands {
     #[command(name = "csv", about = "Convert csv to json, yaml, toml format")]
     Csv(CsvOpts),
