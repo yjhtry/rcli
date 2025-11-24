@@ -1,1 +1,1 @@
-GET http://0.0.0.0:8080/{{file}}
+GET http://0.0.0.0:8080/Cargo.toml
