@@ -6,6 +6,7 @@ use chacha20poly1305::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
 };
 use ed25519_dalek::{SECRET_KEY_LENGTH, Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use jwt_simple::prelude::Ed25519KeyPair;
 use std::str::FromStr;
 
 type SecretKey = [u8; SECRET_KEY_LENGTH];
@@ -160,6 +161,13 @@ pub fn process_key_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
     match format {
         TextSignFormat::Blake3 => Blake3::generate(),
         TextSignFormat::ED25519 => Ed25519Signer::generate(),
+        TextSignFormat::JWTED25519 => {
+            let key_pair = Ed25519KeyPair::generate();
+            let sk = key_pair.to_bytes();
+            let pk = key_pair.public_key().to_bytes();
+
+            Ok(vec![sk, pk])
+        }
         TextSignFormat::ChaCha20Poly1305 => {
             let key = ChaCha20Poly1305::generate_key(&mut OsRng).to_vec();
             Ok(vec![key])

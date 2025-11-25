@@ -6,6 +6,7 @@ mod base64_command;
 mod csv_opts;
 mod gen_pass_opts;
 mod http_command;
+mod jwt_command;
 mod text_command;
 
 pub use base64_command::*;
@@ -13,6 +14,7 @@ pub use csv_opts::*;
 use enum_dispatch::enum_dispatch;
 pub use gen_pass_opts::*;
 pub use http_command::*;
+pub use jwt_command::*;
 pub use text_command::*;
 
 #[derive(Parser, Debug)]
@@ -31,17 +33,17 @@ pub enum Commands {
     #[command(name = "genpass", about = "Generate a random password")]
     GenPass(GenPassOpts),
 
-    #[command(about = "Encode/Decode base64")]
-    #[command(subcommand)]
+    #[command(subcommand, about = "Encode/Decode base64")]
     Base64(Base64Command),
 
-    #[command(about = "Text encrypt/decrypt/sign/verify")]
-    #[command(subcommand)]
+    #[command(subcommand, about = "Text encrypt/decrypt/sign/verify")]
     Text(TextCommand),
 
-    #[command(about = "Generate a random password")]
-    #[command(subcommand)]
+    #[command(subcommand, about = "Generate a random password")]
     Http(HttpCommand),
+
+    #[command(subcommand, about = "Jwt sign and verify")]
+    Jwt(JwtCommand),
 }
 
 pub fn verify_file(filename: &str) -> Result<String, &'static str> {

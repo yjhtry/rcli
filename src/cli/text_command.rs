@@ -80,7 +80,7 @@ impl CmdExecutor for VerifyTextOpts {
 
 #[derive(Debug, Parser)]
 pub struct GenerateOpts {
-    /// Support blake3, ed25519, chacha20poly1305
+    /// Support blake3, ed25519, jwt_ed25519, chacha20poly1305
     #[arg(long, value_parser = verify_format, default_value = "blake3")]
     pub format: TextSignFormat,
 
@@ -101,6 +101,13 @@ impl CmdExecutor for GenerateOpts {
                 assert_eq!(result.len(), 2, "Generate ED25519 key failed");
                 let pk_path = self.output.join("ed25519.pk");
                 let sk_path = self.output.join("ed25519.sk");
+                fs::write(sk_path, &result[0])?;
+                fs::write(pk_path, &result[1])?;
+            }
+            TextSignFormat::JWTED25519 => {
+                assert_eq!(result.len(), 2, "Generate JWT ED25519 key failed");
+                let pk_path = self.output.join("jwt_ed25519.pk");
+                let sk_path = self.output.join("jwt_ed25519.sk");
                 fs::write(sk_path, &result[0])?;
                 fs::write(pk_path, &result[1])?;
             }
@@ -160,6 +167,7 @@ pub enum TextSignFormat {
     Blake3,
     ED25519,
     ChaCha20Poly1305,
+    JWTED25519,
 }
 
 impl FromStr for TextSignFormat {
@@ -169,6 +177,7 @@ impl FromStr for TextSignFormat {
         match s {
             "blake3" => Ok(TextSignFormat::Blake3),
             "ed25519" => Ok(TextSignFormat::ED25519),
+            "jwted25519" => Ok(TextSignFormat::JWTED25519),
             "chacha20poly1305" => Ok(TextSignFormat::ChaCha20Poly1305),
             _ => Err(anyhow::anyhow!("Invalid text sign format")),
         }
@@ -180,6 +189,7 @@ impl fmt::Display for TextSignFormat {
         match self {
             TextSignFormat::Blake3 => write!(f, "blake3"),
             TextSignFormat::ED25519 => write!(f, "ed25519"),
+            TextSignFormat::JWTED25519 => write!(f, "jwted25519"),
             TextSignFormat::ChaCha20Poly1305 => write!(f, "chacha20poly1305"),
         }
     }
@@ -190,6 +200,7 @@ impl From<TextSignFormat> for &'static str {
         match value {
             TextSignFormat::Blake3 => "blake3",
             TextSignFormat::ED25519 => "ed25519",
+            TextSignFormat::JWTED25519 => "jwted25519",
             TextSignFormat::ChaCha20Poly1305 => "chacha20poly1305",
         }
     }
