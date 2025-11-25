@@ -31,12 +31,15 @@ pub enum Commands {
     #[command(name = "genpass", about = "Generate a random password")]
     GenPass(GenPassOpts),
 
+    #[command(about = "Encode/Decode base64")]
     #[command(subcommand)]
     Base64(Base64Command),
 
+    #[command(about = "Text encrypt/decrypt/sign/verify")]
     #[command(subcommand)]
     Text(TextCommand),
 
+    #[command(about = "Generate a random password")]
     #[command(subcommand)]
     Http(HttpCommand),
 }

@@ -35,9 +35,11 @@ pub struct SignTextOpts {
     #[arg(short, long, value_parser = verify_file, default_value = "-")]
     pub input: String,
 
+    /// The private key for sign text
     #[arg(short, long, value_parser = verify_file)]
     pub key: String,
 
+    /// Support blake3, ed25519, chacha20poly1305
     #[arg(long, value_parser = verify_format, default_value = "blake3")]
     pub format: TextSignFormat,
 }
@@ -56,12 +58,14 @@ pub struct VerifyTextOpts {
     #[arg(short, long, value_parser = verify_file, default_value = "-")]
     pub input: String,
 
+    /// Public key for verify signature
     #[arg(short, long, value_parser = verify_file)]
     pub key: String,
 
     #[arg(short, long)]
     pub sign: String,
 
+    /// Support blake3, ed25519, chacha20poly1305
     #[arg(long, value_parser = verify_format, default_value = "blake3")]
     pub format: TextSignFormat,
 }
@@ -76,7 +80,7 @@ impl CmdExecutor for VerifyTextOpts {
 
 #[derive(Debug, Parser)]
 pub struct GenerateOpts {
-    // Generate sign/verify or encrypt/decrypt key
+    /// Support blake3, ed25519, chacha20poly1305
     #[arg(long, value_parser = verify_format, default_value = "blake3")]
     pub format: TextSignFormat,
 
@@ -120,6 +124,7 @@ pub struct EncryptOpts {
     #[arg(short, long)]
     pub output: String,
 
+    // Private key
     #[arg(short, long, value_parser = verify_file)]
     pub key: String,
 }
@@ -137,6 +142,7 @@ pub struct DecryptOpts {
     #[arg(short, long, value_parser = verify_file, default_value = "-")]
     pub input: String,
 
+    // Private key
     #[arg(short, long, value_parser = verify_file)]
     pub key: String,
 }

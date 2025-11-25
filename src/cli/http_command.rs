@@ -14,6 +14,7 @@ pub enum HttpCommand {
 
 #[derive(Debug, Parser)]
 pub struct ServeOpts {
+    // Static assets directory
     #[arg(short, long, value_parser = verify_path, default_value = ".")]
     pub path: PathBuf,
 

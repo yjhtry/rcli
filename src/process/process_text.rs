@@ -6,7 +6,6 @@ use chacha20poly1305::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
 };
 use ed25519_dalek::{SECRET_KEY_LENGTH, Signature, Signer, SigningKey, Verifier, VerifyingKey};
-use rand_core::TryRngCore;
 use std::str::FromStr;
 
 type SecretKey = [u8; SECRET_KEY_LENGTH];
@@ -134,7 +133,7 @@ impl KeyGenerator for Blake3 {
 
 impl KeyGenerator for Ed25519Signer {
     fn generate() -> Result<Vec<Vec<u8>>> {
-        let mut csprng = rand_core::OsRng.unwrap_err();
+        let mut csprng = OsRng;
         let sk = SigningKey::generate(&mut csprng);
         let pk = sk.verifying_key();
         let sk = sk.to_bytes().to_vec();

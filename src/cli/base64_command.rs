@@ -21,6 +21,7 @@ pub struct DecodeOpts {
     #[arg(short, long, value_parser = verify_file, default_value = "-")]
     pub input: String,
 
+    /// Format support standard, url_safe
     #[arg(long, value_parser = verify_base64_format, default_value = "standard")]
     pub format: Base64Format,
 }
@@ -40,6 +41,7 @@ pub struct EncodeOpts {
     #[arg(short, long, value_parser = verify_file, default_value = "-")]
     pub input: String,
 
+    /// Format support standard, url_safe
     #[arg(long, value_parser = verify_base64_format, default_value = "standard")]
     pub format: Base64Format,
 }
